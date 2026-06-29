@@ -1,0 +1,44 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: petworld_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: petworld123
+      MYSQL_DATABASE: petworld
+      MYSQL_USER: petworld
+      MYSQL_PASSWORD: petworld123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama
+    container_name: petworld_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petworld_web
+    ports:
+      - "5000:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=petworld;User=petworld;Password=petworld123;
+      - Ollama__Endpoint=http://ollama:11434
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  ollama_data:

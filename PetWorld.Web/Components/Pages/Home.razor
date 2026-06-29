@@ -1,0 +1,87 @@
+﻿@page "/"
+@inject PetWorld.Application.Interfaces.IChatService ChatService
+@rendermode InteractiveServer
+
+<PageTitle>PetWorld — Chat</PageTitle>
+
+<div class="container mt-4">
+    <h2>🐾 PetWorld — Asystent</h2>
+    <p class="text-muted">Zapytaj o produkty dla swojego pupila!</p>
+
+    <div class="card mb-3" style="height: 400px; overflow-y: auto;" id="chatBox">
+        <div class="card-body">
+            @foreach (var msg in _messages)
+            {
+                <div class="mb-3">
+                    <div class="text-end">
+                        <span class="badge bg-primary p-2">Ty: @msg.Question</span>
+                    </div>
+                    <div class="mt-1">
+                        <span class="badge bg-secondary p-2 text-wrap text-start">
+                            🐾 @msg.Answer
+                        </span>
+                    </div>
+                    <small class="text-muted">Iteracje: @msg.Iterations | Zatwierdzone: @(msg.IsApproved ? "✅" : "❌")</small>
+                </div>
+            }
+
+            @if (_isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Piszę odpowiedź...</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="input-group">
+        <input @bind="_userInput"
+               @bind:event="oninput"
+               @onkeydown="HandleKeyDown"
+               class="form-control"
+               placeholder="Napisz pytanie np. 'Szukam karmy dla psa'"
+               disabled="@_isLoading" />
+        <button class="btn btn-primary" @onclick="SendMessage" disabled="@_isLoading">
+            Wyślij
+        </button>
+    </div>
+</div>
+
+@code {
+    private string _userInput = string.Empty;
+    private bool _isLoading = false;
+
+    private record ChatEntry(string Question, string Answer, int Iterations, bool IsApproved);
+    private List<ChatEntry> _messages = new();
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_userInput) || _isLoading)
+            return;
+
+        var question = _userInput;
+        _userInput = string.Empty;
+        _isLoading = true;
+
+        try
+        {
+            var answer = await ChatService.AskAsync(question);
+            _messages.Add(new ChatEntry(question, answer, 1, true));
+        }
+        catch (Exception ex)
+        {
+            _messages.Add(new ChatEntry(question, $"Błąd: {ex.Message}", 0, false));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SendMessage();
+    }
+}

@@ -1,0 +1,53 @@
+﻿@page "/history"
+@inject PetWorld.Domain.Interfaces.IChatRepository ChatRepository
+@rendermode InteractiveServer
+
+<PageTitle>PetWorld — Historia</PageTitle>
+
+<div class="container mt-4">
+    <h2>📋 Historia rozmów</h2>
+
+    @if (_messages == null)
+    {
+        <div class="spinner-border text-primary" role="status"></div>
+    }
+    else if (!_messages.Any())
+    {
+        <p class="text-muted">Brak historii rozmów.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Pytanie</th>
+                    <th>Odpowiedź</th>
+                    <th>Iteracje</th>
+                    <th>Zatwierdzone</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var msg in _messages)
+                {
+                    <tr>
+                        <td>@msg.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@msg.Question</td>
+                        <td>@msg.Answer</td>
+                        <td>@msg.Iterations</td>
+                        <td>@(msg.IsApproved ? "✅" : "❌")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IEnumerable<PetWorld.Domain.Entities.ChatMessage>? _messages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _messages = await ChatRepository.GetAllAsync();
+    }
+}
